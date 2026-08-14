@@ -39,12 +39,19 @@
 
   homebrew = {
     enable = true;
+
+    taps = [
+      "my-monkeys/tap"
+    ];
+
+
     onActivation.autoUpdate = true;
     onActivation.cleanup = "zap";   # remove anything not listed here
     onActivation.extraFlags = [ "--force" ];
     casks = [
       "wezterm"
       "claude-code"
+      "my-monkeys/tap/opensuperwhisper"
       "codex"
     ];
     brews = [
