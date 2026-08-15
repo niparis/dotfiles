@@ -1,0 +1,5 @@
+# herdr writes its logs and runtime state next to its config. Only config.toml
+# is tracked.
+home/.config/herdr/*.log
+home/.config/herdr/.plugins.lock
+home/.config/herdr/session.json
