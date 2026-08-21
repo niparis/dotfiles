@@ -25,6 +25,22 @@ in
   fonts.fontconfig.enable = true;
   home.sessionVariables.EDITOR = "nvim";
 
+  # The estate's internal services (*.local.org) are signed by Caddy's local
+  # authority. macOS trusts it, but Python ships its own root bundle and does
+  # not — so `homelab memory` failed certificate verification and returned
+  # nothing, silently, on every local agent session.
+  #
+  # This points Python at certifi's roots plus that CA. Rebuild the file after a
+  # Python upgrade, or its public roots go stale:
+  #   security find-certificate -a -c "Caddy Local Authority" -p \
+  #     /Library/Keychains/System.keychain > /tmp/caddy.pem
+  #   cat "$(python3 -c 'import certifi; print(certifi.where())')" /tmp/caddy.pem \
+  #     > ~/.config/homelab/estate-ca-bundle.pem
+  #
+  # Certificate verification is never disabled to get past this.
+  home.sessionVariables.SSL_CERT_FILE =
+    "${config.home.homeDirectory}/.config/homelab/estate-ca-bundle.pem";
+
 
   programs.zsh = {
     enable = true;
