@@ -15,6 +15,9 @@
     home = "/Users/nicolasparis";
   };
 
+  launchd.user.envVariables.SSL_CERT_FILE =
+    "/Users/nicolasparis/.config/homelab/estate-ca-bundle.pem";
+
   system.stateVersion = 6;
 
   system.defaults = {
@@ -86,6 +89,7 @@
       "ncdu"
       "redis"
       "tree"
+      "just"
 
     ];
   };

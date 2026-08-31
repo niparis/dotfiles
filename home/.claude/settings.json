@@ -1,10 +1,63 @@
 {
-  "skipDangerousModePermissionPrompt": true,
-   "statusLine": {
-     "type": "command",
-     "command": "sh /Users/nicolasparis/.claude/statusline-command.sh",
-     "padding": 0
-   },
+  "permissions": {
+    "deny": [
+      "mcp__synology__synology_list_nas",
+      "mcp__synology__synology_login",
+      "mcp__synology__synology_logout",
+      "mcp__synology__list_shares",
+      "mcp__synology__list_directory",
+      "mcp__synology__get_file_info",
+      "mcp__synology__get_file_content",
+      "mcp__synology__search_files",
+      "mcp__synology__create_file",
+      "mcp__synology__create_directory",
+      "mcp__synology__delete",
+      "mcp__synology__rename_file",
+      "mcp__synology__move_file",
+      "mcp__synology__ds_get_info",
+      "mcp__synology__ds_list_tasks",
+      "mcp__synology__ds_create_task",
+      "mcp__synology__ds_pause_tasks",
+      "mcp__synology__ds_resume_tasks",
+      "mcp__synology__ds_delete_tasks",
+      "mcp__synology__ds_get_statistics",
+      "mcp__synology__ds_list_downloaded_files",
+      "mcp__synology__synology_utilization",
+      "mcp__synology__synology_disk_smart",
+      "mcp__synology__synology_lun_list",
+      "mcp__synology__synology_lun_get",
+      "mcp__synology__synology_ups",
+      "mcp__synology__synology_container_delete",
+      "mcp__synology__synology_container_project_create",
+      "mcp__synology__synology_container_project_update",
+      "mcp__synology__synology_container_project_build",
+      "mcp__synology__synology_container_project_clean",
+      "mcp__synology__synology_container_project_delete",
+      "mcp__synology__synology_container_image_get",
+      "mcp__synology__synology_container_image_delete",
+      "mcp__synology__synology_container_image_pull",
+      "mcp__synology__synology_container_registry_list",
+      "mcp__synology__synology_container_registry_search",
+      "mcp__synology__synology_container_registry_tags",
+      "mcp__synology__synology_container_registry_download",
+      "mcp__synology__synology_container_network_get",
+      "mcp__synology__synology_container_network_create",
+      "mcp__synology__synology_container_network_delete",
+      "mcp__synology__synology_nfs_status",
+      "mcp__synology__synology_nfs_enable",
+      "mcp__synology__synology_nfs_list_shares",
+      "mcp__synology__synology_nfs_set_permission",
+      "mcp__synology__synology_create_share",
+      "mcp__synology__synology_get_group",
+      "mcp__synology__synology_delete_user",
+      "mcp__synology__synology_create_user",
+      "mcp__synology__synology_set_user",
+      "mcp__synology__synology_set_user_permissions",
+      "mcp__synology__synology_add_user_to_group",
+      "mcp__synology__synology_remove_user_from_group"
+    ]
+  },
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -38,5 +91,13 @@
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "sh /Users/nicolasparis/.claude/statusline-command.sh",
+    "padding": 0
+  },
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true
 }
