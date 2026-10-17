@@ -48,6 +48,18 @@ in
     syntaxHighlighting.enable = true;  # commands turn green when valid
     initContent = ''
       bindkey '^f' autosuggest-accept
+
+      # Run Reason without inherited certificate overrides
+      reason() {
+        local binary
+        binary="$(whence -p reason)"
+        env -u NODE_EXTRA_CA_CERTS -u SSL_CERT_FILE "$binary" "$@"
+      }
+
+      # Shortcut
+      rereason() {
+        reason "$@"
+      }
     '';
     shellAliases = {
       ".." = "cd ..";
