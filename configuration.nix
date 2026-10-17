@@ -90,6 +90,7 @@
       "redis"
       "tree"
       "just"
+      "mise"
 
     ];
   };

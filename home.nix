@@ -47,7 +47,20 @@ in
     autosuggestion.enable = true;      # ghost text from history
     syntaxHighlighting.enable = true;  # commands turn green when valid
     initContent = ''
+      eval "$(/opt/homebrew/bin/mise activate zsh)"
       bindkey '^f' autosuggest-accept
+
+      # Run Reason without inherited certificate overrides
+      reason() {
+        local binary
+        binary="$(whence -p reason)"
+        env -u NODE_EXTRA_CA_CERTS -u SSL_CERT_FILE "$binary" "$@"
+      }
+
+      # Shortcut
+      rereason() {
+        reason "$@"
+      }
     '';
     shellAliases = {
       ".." = "cd ..";
@@ -76,6 +89,11 @@ in
 
 
   # Edit-in-place: the real file stays in my repo, ~/.config just points at it.
+  home.file.".config/mise/config.toml".text = ''
+    [tools]
+    node = "24"
+  '';
+
   home.file.".config/wezterm".source =
     config.lib.file.mkOutOfStoreSymlink "${dotfiles}/home/.config/wezterm";
 

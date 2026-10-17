@@ -3,3 +3,4 @@
 home/.config/herdr/*.log
 home/.config/herdr/.plugins.lock
 home/.config/herdr/session.json
+.worktrees/
