@@ -2,7 +2,6 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-ln -sfn "$DIR" ~/.dotfiles
 
 MODE="rebuild"
 ALLOW=""
@@ -27,6 +26,10 @@ EOF
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+
+if [[ "$MODE" != "check" ]]; then
+  ln -sfn "$DIR" ~/.dotfiles
+fi
 
 # Fail-closed Homebrew guard: compare installed formulae/casks with the
 # declarations evaluated from configuration.nix. Prints undeclared items.
