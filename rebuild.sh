@@ -36,56 +36,73 @@ fi
 GUARD_PY='
 import json, os, subprocess, sys
 
-brew = os.environ.get("BREW", "brew")
-nix = os.environ.get("NIX", "nix")
 flake = os.environ.get("FLAKE_DIR", ".")
+nix = os.environ.get("NIX", "nix")
 
 def run(cmd):
     return subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
 
 try:
-    leaves = [x for x in run([brew, "leaves"]).split() if x.strip()]
-    casks = [x for x in run([brew, "list", "--cask"]).split() if x.strip()]
-except Exception as e:
-    print(f"guard error: could not inventory Homebrew: {e}", file=sys.stderr)
-    sys.exit(2)
-
-try:
     brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.brews"])
     casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.casks"])
     prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.mac.config.homebrew.prefix"]).strip()
-    declared_brews = {x["name"] for x in json.loads(brews_json)}
+    declared_brews = {x["name"].split("/")[-1] for x in json.loads(brews_json)}
     declared_casks = {x["name"].split("/")[-1] for x in json.loads(casks_json)}
 except Exception as e:
     print(f"guard error: could not evaluate declarations: {e}", file=sys.stderr)
     sys.exit(2)
 
-# Use the brew binary under the prefix nix-darwin will actually act on.
-brew_bin = os.path.join(prefix, "bin", "brew")
-if not os.path.exists(brew_bin):
-    print(f"guard error: brew binary not found at {brew_bin}", file=sys.stderr)
-    sys.exit(2)
-# Re-inventory with that binary (fail closed).
-try:
-    leaves = [x for x in run([brew_bin, "leaves"]).split() if x.strip()]
-    casks = [x for x in run([brew_bin, "list", "--cask"]).split() if x.strip()]
-except Exception as e:
-    print(f"guard error: could not inventory Homebrew via {brew_bin}: {e}", file=sys.stderr)
+cellar = os.path.join(prefix, "Cellar")
+caskroom = os.path.join(prefix, "Caskroom")
+if not os.path.isdir(cellar):
+    print(f"guard error: Cellar not found at {cellar}", file=sys.stderr)
     sys.exit(2)
 
-# Build-dependency closure of declared brews (build deps only, not runtime).
+installed_on_request = set()
+needed = set()
 try:
-    with_build = set(run([brew_bin, "deps", "--include-build", "--union", *sorted(declared_brews)]).split())
-    runtime = set(run([brew_bin, "deps", "--union", *sorted(declared_brews)]).split())
-    build_only = with_build - runtime
-except Exception:
-    build_only = set()
+    for name in os.listdir(cellar):
+        keg_dir = os.path.join(cellar, name)
+        if not os.path.isdir(keg_dir):
+            continue
+        versions = [v for v in os.listdir(keg_dir) if os.path.isdir(os.path.join(keg_dir, v))]
+        if not versions:
+            continue
+        receipts = []
+        for v in versions:
+            rp = os.path.join(keg_dir, v, "INSTALL_RECEIPT.json")
+            if os.path.exists(rp):
+                with open(rp) as f:
+                    receipts.append(json.load(f))
+        if not receipts:
+            print(f"guard error: missing receipt for {name}", file=sys.stderr)
+            sys.exit(2)
+        if any(r.get("installed_on_request") is True for r in receipts):
+            installed_on_request.add(name)
+        for r in receipts:
+            for dep in r.get("runtime_dependencies") or []:
+                full = dep.get("full_name") or dep.get("name")
+                if full:
+                    needed.add(str(full).split("/")[-1])
+except Exception as e:
+    print(f"guard error: could not read Cellar receipts: {e}", file=sys.stderr)
+    sys.exit(2)
 
 undeclared = []
-for name in sorted((set(leaves) - declared_brews) - build_only):
+for name in sorted(installed_on_request - declared_brews - needed):
     undeclared.append(("formula", name))
-for name in sorted(set(casks) - declared_casks):
-    undeclared.append(("cask", name))
+
+if os.path.isdir(caskroom):
+    try:
+        casks = {n for n in os.listdir(caskroom) if os.path.isdir(os.path.join(caskroom, n)) and not n.startswith(".")}
+    except Exception as e:
+        print(f"guard error: could not list Caskroom: {e}", file=sys.stderr)
+        sys.exit(2)
+    for name in sorted(casks - declared_casks):
+        undeclared.append(("cask", name))
+else:
+    print(f"guard error: Caskroom not found at {caskroom}", file=sys.stderr)
+    sys.exit(2)
 
 for kind, name in undeclared:
     print(f"{kind}:{name}")
