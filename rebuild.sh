@@ -34,38 +34,65 @@ fi
 # Fail-closed Homebrew guard: compare installed formulae/casks with the
 # declarations evaluated from configuration.nix. Prints undeclared items.
 GUARD_PY='
-import json, subprocess, sys
+import json, os, subprocess, sys
+
+brew = os.environ.get("BREW", "brew")
+nix = os.environ.get("NIX", "nix")
+flake = os.environ.get("FLAKE_DIR", ".")
 
 def run(cmd):
     return subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
 
 try:
-    leaves = [x for x in run(["brew", "leaves"]).split() if x.strip()]
-    casks = [x for x in run(["brew", "list", "--cask"]).split() if x.strip()]
+    leaves = [x for x in run([brew, "leaves"]).split() if x.strip()]
+    casks = [x for x in run([brew, "list", "--cask"]).split() if x.strip()]
 except Exception as e:
     print(f"guard error: could not inventory Homebrew: {e}", file=sys.stderr)
     sys.exit(2)
 
 try:
-    brews_json = run(["nix", "eval", "--json", ".#darwinConfigurations.mac.config.homebrew.brews"])
-    casks_json = run(["nix", "eval", "--json", ".#darwinConfigurations.mac.config.homebrew.casks"])
+    brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.brews"])
+    casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.casks"])
+    prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.mac.config.homebrew.prefix"]).strip()
     declared_brews = {x["name"] for x in json.loads(brews_json)}
     declared_casks = {x["name"].split("/")[-1] for x in json.loads(casks_json)}
 except Exception as e:
     print(f"guard error: could not evaluate declarations: {e}", file=sys.stderr)
     sys.exit(2)
 
+# Use the brew binary under the prefix nix-darwin will actually act on.
+brew_bin = os.path.join(prefix, "bin", "brew")
+if not os.path.exists(brew_bin):
+    print(f"guard error: brew binary not found at {brew_bin}", file=sys.stderr)
+    sys.exit(2)
+# Re-inventory with that binary (fail closed).
+try:
+    leaves = [x for x in run([brew_bin, "leaves"]).split() if x.strip()]
+    casks = [x for x in run([brew_bin, "list", "--cask"]).split() if x.strip()]
+except Exception as e:
+    print(f"guard error: could not inventory Homebrew via {brew_bin}: {e}", file=sys.stderr)
+    sys.exit(2)
+
+# Build-dependency closure of declared brews (build deps only, not runtime).
+try:
+    with_build = set(run([brew_bin, "deps", "--include-build", "--union", *sorted(declared_brews)]).split())
+    runtime = set(run([brew_bin, "deps", "--union", *sorted(declared_brews)]).split())
+    build_only = with_build - runtime
+except Exception:
+    build_only = set()
+
 undeclared = []
-for name in sorted(set(leaves) - declared_brews):
+for name in sorted((set(leaves) - declared_brews) - build_only):
     undeclared.append(("formula", name))
 for name in sorted(set(casks) - declared_casks):
     undeclared.append(("cask", name))
 
 for kind, name in undeclared:
     print(f"{kind}:{name}")
+
 '
 
-UNDECLARED="$(cd "$DIR" && python3 -c "$GUARD_PY")" || {
+UNDECLARED="$(cd "$DIR" && FLAKE_DIR="$DIR" python3 -c "$GUARD_PY")" || {
   echo "brew guard failed (see above)" >&2
   exit 1
 }
