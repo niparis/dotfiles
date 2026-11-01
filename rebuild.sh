@@ -188,4 +188,4 @@ if [[ "$MODE" == "check" ]]; then
   exit 0
 fi
 
-exec sudo darwin-rebuild switch --flake ~/.dotfiles#mac
+exec sudo darwin-rebuild switch --flake "path:${DIR}#mac"
