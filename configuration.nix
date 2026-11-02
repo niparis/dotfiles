@@ -52,6 +52,7 @@
     onActivation.autoUpdate = true;
     onActivation.cleanup = "zap";   # remove anything not listed here
     onActivation.extraFlags = [ "--force" ];
+    greedyCasks = true;
     casks = [
       "wezterm"
       "claude-code@latest"
