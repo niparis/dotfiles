@@ -45,6 +45,7 @@
 
     taps = [
       "my-monkeys/tap"
+      "anomalyco/tap"
     ];
 
 
@@ -53,9 +54,10 @@
     onActivation.extraFlags = [ "--force" ];
     casks = [
       "wezterm"
-      "claude-code"
-      "my-monkeys/tap/opensuperwhisper"
+      "claude-code@latest"
+      { name = "my-monkeys/tap/opensuperwhisper"; greedy = true; }
       "codex"
+      "blender"
     ];
     brews = [
       "herdr"
@@ -91,6 +93,10 @@
       "tree"
       "just"
       "mise"
+      "anomalyco/tap/opencode-v2"
+      "vhs"
+      "asciinema"
+      "tesseract"
 
     ];
   };
