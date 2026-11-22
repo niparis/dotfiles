@@ -3,16 +3,10 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
-if ! command -v nix >/dev/null 2>&1; then
-  echo "Nix is not installed. Install Determinate Nix first:" >&2
-  echo "  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install" >&2
-  exit 1
-fi
-
 HOSTNAME="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
 case "$HOSTNAME" in
   "Nicolass-MacBook-Pro-950") HOST="mac" ;;
-  *Studio*|*studio*) HOST="studio" ;;
+  "M2Max") HOST="studio" ;;
   *) echo "Unknown host: $HOSTNAME (no darwinConfiguration). Supported: mac, studio" >&2; exit 1 ;;
 esac
 
@@ -63,14 +57,15 @@ import json, os, subprocess, sys
 
 flake = os.environ.get("FLAKE_DIR", ".")
 nix = os.environ.get("NIX", "nix")
+host = os.environ.get("HOST", "mac")
 
 def run(cmd):
     return subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
 
 try:
-    brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.brews"])
-    casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.casks"])
-    prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.prefix"]).strip()
+    brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{host}.config.homebrew.brews"])
+    casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{host}.config.homebrew.casks"])
+    prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.{host}.config.homebrew.prefix"]).strip()
     declared_brews = {x["name"].split("/")[-1] for x in json.loads(brews_json)}
     declared_casks = {x["name"].split("/")[-1] for x in json.loads(casks_json)}
 except Exception as e:
@@ -100,8 +95,8 @@ try:
                 with open(rp) as f:
                     receipts.append(json.load(f))
         if not receipts:
-            print(f"guard error: missing receipt for {name}", file=sys.stderr)
-            sys.exit(2)
+            print(f"guard warning: skipping {name} (no install receipt)", file=sys.stderr)
+            continue
         if any(r.get("installed_on_request") is True for r in receipts):
             installed_on_request.add(name)
         for r in receipts:
