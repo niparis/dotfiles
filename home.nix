@@ -5,8 +5,8 @@ let
 in
 
 {
-  home.username = "nicolasparis";
-  home.homeDirectory = "/Users/nicolasparis";
+  home.username = pkgs.lib.mkDefault "nicolasparis";
+  home.homeDirectory = pkgs.lib.mkDefault "/Users/nicolasparis";
   home.stateVersion = "24.11";
 
   home.packages = with pkgs; [

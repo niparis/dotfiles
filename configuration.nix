@@ -10,14 +10,6 @@
   nixpkgs.config.allowUnfree = true;
   nixpkgs.hostPlatform = "aarch64-darwin"; # use x86_64-darwin for Intel CPU
 
-  system.primaryUser = "nicolasparis";
-  users.users.nicolasparis = {
-    home = "/Users/nicolasparis";
-  };
-
-  launchd.user.envVariables.SSL_CERT_FILE =
-    "/Users/nicolasparis/.config/homelab/estate-ca-bundle.pem";
-
   system.stateVersion = 6;
 
   system.defaults = {
@@ -36,7 +28,6 @@
 
   nix-homebrew = {
     enable = true;
-    user = "nicolasparis";
     autoMigrate = true;
   };
 
