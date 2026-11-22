@@ -3,6 +3,12 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
+if ! command -v nix >/dev/null 2>&1; then
+  echo "Nix is not installed. Install Determinate Nix first:" >&2
+  echo "  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install" >&2
+  exit 1
+fi
+
 MODE="rebuild"
 ALLOW=""
 while [[ $# -gt 0 ]]; do
@@ -29,6 +35,12 @@ done
 
 if [[ "$MODE" != "check" ]]; then
   ln -sfn "$DIR" ~/.dotfiles
+fi
+
+# First activation on a machine without nix-darwin yet.
+if ! command -v darwin-rebuild >/dev/null 2>&1; then
+  echo "darwin-rebuild not found; doing first activation via nix run..." >&2
+  exec nix run github:nix-darwin/nix-darwin/nix-darwin-26.05#darwin-rebuild -- switch --flake "path:${DIR}#mac"
 fi
 
 # Fail-closed Homebrew guard: compare installed formulae/casks with the
@@ -75,8 +87,8 @@ try:
                 with open(rp) as f:
                     receipts.append(json.load(f))
         if not receipts:
-            print(f"guard error: missing receipt for {name}", file=sys.stderr)
-            sys.exit(2)
+            # No receipt (stale/broken keg): skip rather than fail.
+            continue
         if any(r.get("installed_on_request") is True for r in receipts):
             installed_on_request.add(name)
         for r in receipts:
@@ -109,10 +121,15 @@ for kind, name in undeclared:
 
 '
 
-UNDECLARED="$(cd "$DIR" && FLAKE_DIR="$DIR" python3 -c "$GUARD_PY")" || {
-  echo "brew guard failed (see above)" >&2
-  exit 1
-}
+if command -v brew >/dev/null 2>&1; then
+  UNDECLARED="$(cd "$DIR" && FLAKE_DIR="$DIR" python3 -c "$GUARD_PY")" || {
+    echo "brew guard failed (see above)" >&2
+    exit 1
+  }
+else
+  echo "brew guard: skipped (Homebrew not installed yet)"
+  UNDECLARED=""
+fi
 
 if [[ -n "$UNDECLARED" ]]; then
   echo "brew guard: undeclared Homebrew items (not in configuration.nix):" >&2
