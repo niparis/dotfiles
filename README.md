@@ -11,5 +11,14 @@ Homebrew casks/brews, and dotfile symlinks, applied via flakes.
 3. Run `./rebuild.sh`. On a fresh Mac it installs nix-darwin via `nix run` on the first activation; later runs use `darwin-rebuild`. It skips the Homebrew guard until Homebrew exists.
 4. Re-run `./rebuild.sh` after Homebrew is available to install the declared brews and casks.
 
-The flake is currently built for host `mac` and user `nicolasparis`. A second Mac (e.g. Mac Studio, user `nicolas`) needs a new `darwinConfigurations` entry and `home-manager.users.nicolas`; proposed change tracked separately.
-EOF
+### Studio (Mac Studio, user `nicolas`)
+
+1. Install Determinate Nix (sudo password required):
+   `curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install`
+2. Clone the repo:
+   `git clone git@github.com:niparis/dotfiles.git ~/code/niparis/dotfiles`
+3. First activation (no darwin-rebuild yet):
+   `cd ~/code/niparis/dotfiles && ./rebuild.sh`
+   (uses `sudo nix run ...#darwin-rebuild`; may prompt for sudo)
+4. After Homebrew is installed:
+   `cd ~/code/niparis/dotfiles && ./rebuild.sh`

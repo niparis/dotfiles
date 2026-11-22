@@ -9,6 +9,19 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
+HOSTNAME="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+case "$HOSTNAME" in
+  "Nicolass-MacBook-Pro-950") HOST="mac" ;;
+  *Studio*|*studio*) HOST="studio" ;;
+  *) echo "Unknown host: $HOSTNAME (no darwinConfiguration). Supported: mac, studio" >&2; exit 1 ;;
+esac
+
+if ! command -v nix >/dev/null 2>&1; then
+  echo "Nix is not installed. Install Determinate Nix first:" >&2
+  echo "  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install" >&2
+  exit 1
+fi
+
 MODE="rebuild"
 ALLOW=""
 while [[ $# -gt 0 ]]; do
@@ -40,7 +53,7 @@ fi
 # First activation on a machine without nix-darwin yet.
 if ! command -v darwin-rebuild >/dev/null 2>&1; then
   echo "darwin-rebuild not found; doing first activation via nix run..." >&2
-  exec nix run github:nix-darwin/nix-darwin/nix-darwin-26.05#darwin-rebuild -- switch --flake "path:${DIR}#mac"
+  exec sudo nix run github:nix-darwin/nix-darwin/nix-darwin-26.05#darwin-rebuild -- switch --flake "path:${DIR}#${HOST}"
 fi
 
 # Fail-closed Homebrew guard: compare installed formulae/casks with the
@@ -55,9 +68,9 @@ def run(cmd):
     return subprocess.check_output(cmd, text=True, stderr=subprocess.PIPE)
 
 try:
-    brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.brews"])
-    casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.mac.config.homebrew.casks"])
-    prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.mac.config.homebrew.prefix"]).strip()
+    brews_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.brews"])
+    casks_json = run([nix, "eval", "--json", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.casks"])
+    prefix = run([nix, "eval", "--raw", f"{flake}#darwinConfigurations.{os.environ.get('HOST','mac')}.config.homebrew.prefix"]).strip()
     declared_brews = {x["name"].split("/")[-1] for x in json.loads(brews_json)}
     declared_casks = {x["name"].split("/")[-1] for x in json.loads(casks_json)}
 except Exception as e:
@@ -87,8 +100,8 @@ try:
                 with open(rp) as f:
                     receipts.append(json.load(f))
         if not receipts:
-            # No receipt (stale/broken keg): skip rather than fail.
-            continue
+            print(f"guard error: missing receipt for {name}", file=sys.stderr)
+            sys.exit(2)
         if any(r.get("installed_on_request") is True for r in receipts):
             installed_on_request.add(name)
         for r in receipts:
@@ -122,7 +135,7 @@ for kind, name in undeclared:
 '
 
 if command -v brew >/dev/null 2>&1; then
-  UNDECLARED="$(cd "$DIR" && FLAKE_DIR="$DIR" python3 -c "$GUARD_PY")" || {
+  UNDECLARED="$(cd "$DIR" && FLAKE_DIR="$DIR" HOST="$HOST" python3 -c "$GUARD_PY")" || {
     echo "brew guard failed (see above)" >&2
     exit 1
   }
@@ -205,4 +218,4 @@ if [[ "$MODE" == "check" ]]; then
   exit 0
 fi
 
-exec sudo darwin-rebuild switch --flake "path:${DIR}#mac"
+exec sudo darwin-rebuild switch --flake "path:${DIR}#${HOST}"
