@@ -5,8 +5,8 @@ let
 in
 
 {
-  home.username = "nicolasparis";
-  home.homeDirectory = "/Users/nicolasparis";
+  home.username = pkgs.lib.mkDefault "nicolasparis";
+  home.homeDirectory = pkgs.lib.mkDefault "/Users/nicolasparis";
   home.stateVersion = "24.11";
 
   home.packages = with pkgs; [
@@ -37,11 +37,6 @@ in
   #   cat "$(python3 -c 'import certifi; print(certifi.where())')" /tmp/caddy.pem \
   #     > ~/.config/homelab/estate-ca-bundle.pem
   #
-  # Certificate verification is never disabled to get past this.
-  home.sessionVariables.SSL_CERT_FILE =
-    "${config.home.homeDirectory}/.config/homelab/estate-ca-bundle.pem";
-
-
   programs.zsh = {
     enable = true;
     autosuggestion.enable = true;      # ghost text from history

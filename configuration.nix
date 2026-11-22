@@ -10,14 +10,6 @@
   nixpkgs.config.allowUnfree = true;
   nixpkgs.hostPlatform = "aarch64-darwin"; # use x86_64-darwin for Intel CPU
 
-  system.primaryUser = "nicolasparis";
-  users.users.nicolasparis = {
-    home = "/Users/nicolasparis";
-  };
-
-  launchd.user.envVariables.SSL_CERT_FILE =
-    "/Users/nicolasparis/.config/homelab/estate-ca-bundle.pem";
-
   system.stateVersion = 6;
 
   system.defaults = {
@@ -36,7 +28,6 @@
 
   nix-homebrew = {
     enable = true;
-    user = "nicolasparis";
     autoMigrate = true;
   };
 
@@ -45,17 +36,20 @@
 
     taps = [
       "my-monkeys/tap"
+      "anomalyco/tap"
     ];
 
 
     onActivation.autoUpdate = true;
     onActivation.cleanup = "zap";   # remove anything not listed here
     onActivation.extraFlags = [ "--force" ];
+    greedyCasks = true;
     casks = [
       "wezterm"
-      "claude-code"
-      "my-monkeys/tap/opensuperwhisper"
+      "claude-code@latest"
+      { name = "my-monkeys/tap/opensuperwhisper"; greedy = true; }
       "codex"
+      "blender"
     ];
     brews = [
       "herdr"
@@ -91,6 +85,11 @@
       "tree"
       "just"
       "mise"
+      "anomalyco/tap/opencode-v2"
+      "vhs"
+      "asciinema"
+      "tesseract"
+      "leptonica"
 
     ];
   };
